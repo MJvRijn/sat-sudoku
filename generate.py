@@ -5,11 +5,23 @@ positions = [(0,0), (-2, -2), (-2, 2), (2, 2), (2, -2)]
 
 def main():
     sudokus = []
+    i = 0
+    while True:
+        fail = False
 
-    for px, py in positions:
-        sudoku = init_overlap(px, py, sudokus)
-        solve(sudoku)
-        sudokus.append((px, py, sudoku))
+        for px, py in positions:
+            sudoku = init_overlap(px, py, sudokus)
+            s = solve(sudoku)
+            if not s:
+                print('Conflict, restarting ({})'.format(i))
+                fail = True
+                i += 1
+                break
+
+            sudokus.append((px, py, sudoku))
+
+        if not fail:
+            break
 
     draw(sudokus)
 
