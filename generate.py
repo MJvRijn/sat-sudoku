@@ -1,29 +1,42 @@
+import argparse, random, os
 import numpy as np
-import random
 
 positions = [(0,0), (-2, -2), (-2, 2), (2, 2), (2, -2)]
 
 def main():
-    sudokus = []
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--number', type=int, required=True, metavar='N', help='number of sudokus')
+    parser.add_argument('-o', '--output', type=str, required=True, metavar='NAME', help='name of output')
+    args = parser.parse_args()
+
+    name = args.output
+    N = args.number
+
+    overlapping_sudokus = []
+
     i = 0
     while True:
-        fail = False
-
+        sudokus = []
         for px, py in positions:
             sudoku = init_overlap(px, py, sudokus)
-            s = solve(sudoku)
-            if not s:
-                print('Conflict, restarting ({})'.format(i))
-                fail = True
-                i += 1
+            if not solve(sudoku):
                 break
-
             sudokus.append((px, py, sudoku))
 
-        if not fail:
+        matrix = overlap_sudokus(sudokus)
+
+        # Progress
+        i += 1
+        os.system('clear')
+        print('{}/{}\n'.format(i, N))
+        draw(matrix)
+
+        overlapping_sudokus.append(matrix)
+
+        if len(overlapping_sudokus) >= N:
             break
 
-    draw(sudokus)
+    np.save('{}.npy'.format(name), np.array(overlapping_sudokus))
 
 def init_overlap(px, py, sudokus):
     newdoku = np.zeros(shape=(9,9), dtype=np.int)
@@ -37,7 +50,6 @@ def init_overlap(px, py, sudokus):
                     newdoku[x, y] = sudoku[i, j]
 
     return newdoku
-
 
 def valid_insertion(sudoku, x, y, n):
     if not all([n != sudoku[x][i] for i in range(9)]): # Row
@@ -86,7 +98,7 @@ def solve(sudoku):
 def save(sudokus, positions):
     pass
 
-def draw(sudokus):
+def overlap_sudokus(sudokus):
     min_x = max_x = min_y = max_y = 0
 
     for px, py, _ in sudokus:
@@ -108,9 +120,13 @@ def draw(sudokus):
                 j = y + (py-min_y)*3
                 matrix[i, j] = sudoku[x, y]
 
+    return matrix
+
+
+def draw(matrix):
     output = ''
-    for x in range(matrix.shape[0]):
-        for y in range(matrix.shape[1]):
+    for y in range(matrix.shape[0]):
+        for x in range(matrix.shape[1]):
             n = matrix[x, y]
             if n == 0:
                 output += '  '
@@ -119,10 +135,6 @@ def draw(sudokus):
         output += '\n'
 
     print(output)
-
-
-
-
 
 if __name__ == '__main__':
     main()
