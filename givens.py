@@ -2,8 +2,8 @@ import numpy as np
 import os, time, random
 
 def main():
-    givens = 25
-    proportion_in_box = 1
+    givens = 50
+    proportion_in_box = 0
 
     sudokus = np.load('sudoku.npy')
 
@@ -65,7 +65,12 @@ def draw(matrix):
         for x in range(matrix.shape[1]):
             n = matrix[x, y]
             if n == 0:
-                output += '  '
+                if (6 <= x <= 8 or 12 <= x <= 14) and (6 <= y <= 8 or 12 <= y <= 14):
+                    output += ' -'
+                elif ((0 <= x <= 5 or 15 <= x <= 20) and (9 <= y <= 11)) or ((0 <= y <= 5 or 15 <= y <= 20) and (9 <= x <= 11)):
+                    output += '  '
+                else:
+                    output += ' .'
             else:
                 output += ' ' + str(n)
         output += '\n'
