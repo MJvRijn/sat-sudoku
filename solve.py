@@ -5,7 +5,7 @@ import pycosat, math
 def main():
     sudokus = np.load('sudoku.npy')
 
-    with open('temp.cnf', 'r') as f:
+    with open('squares.cnf', 'r') as f:
         content = [x.strip() for x in f.readlines()]
 
         cnf = []
@@ -15,7 +15,9 @@ def main():
 
 
     solution = pycosat.solve(cnf, verbose=1)
-    decode(solution)
+
+    if solution != 'UNSAT':
+        decode(solution)
 
 
 def decode(solution):
@@ -26,14 +28,14 @@ def decode(solution):
             number = str(assignment)
 
             if len(number) == 4:
-                x = int(number[:1]) - 1
-                y = int(number[1:3]) - 1
+                y = int(number[:1]) - 1
+                x = int(number[1:3]) - 1
                 n = int(number[-1])
                 matrix[x,y] = n
 
             if len(number) == 5:
-                x = int(number[:2]) - 1
-                y = int(number[2:4]) - 1
+                y = int(number[:2]) - 1
+                x = int(number[2:4]) - 1
                 n = int(number[-1])
                 matrix[x,y] = n
 
