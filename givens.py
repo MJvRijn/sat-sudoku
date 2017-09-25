@@ -2,7 +2,7 @@ import numpy as np
 import os, time, random
 
 def main():
-    givens = 50
+    givens = 333
     proportion_in_box = 0
 
     sudokus = np.load('sudoku.npy')
@@ -31,10 +31,10 @@ def reduce(sudoku, inside, outside):
         x = i // sudoku.shape[0]
         y = i % sudoku.shape[1]
 
-        if sudoku[x, y] != 0:
+        if sudoku[x, y] != 0 and (x, y) not in keep:
             # Inside
             if (6 <= x <= 8 or 12 <= x <= 14) and (6 <= y <= 8 or 12 <= y <= 14):
-                if n_in < inside:
+                if n_in < inside and (x, y):
                     n_in += 1
                     keep.append((x, y))
 
