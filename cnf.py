@@ -289,6 +289,6 @@ def produce(rOff, cOff):
                             exM = ""
 produce(0,0)
 produce(0,12)
-produce(9,6)
+produce(6,6)
 produce(12,0)
 produce(12,12)
