@@ -54,7 +54,7 @@ def produce(rOff, cOff):
  
     ## Column constraints 
     for i in range((1+rOff),(10+rOff)): 
-        for j in range((1+rOff),(10+rOff)): 
+        for j in range((1+cOff),(10+cOff)): 
             for k in range(1,10): 
                 for l in range((1+rOff),(10+rOff)):  
                     if i is not l: 
