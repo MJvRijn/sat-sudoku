@@ -1,11 +1,11 @@
 import numpy as np
-import pycosat, math
+import pycosat, math, random, os
 
 
 def main():
     sudokus = np.load('sudoku.npy')
 
-    with open('squares.cnf', 'r') as f:
+    with open('rules.cnf', 'r') as f:
         content = [x.strip() for x in f.readlines()]
 
         cnf = []
@@ -14,10 +14,32 @@ def main():
             cnf.append(literals)
 
 
-    solution = pycosat.solve(cnf, verbose=1)
+    num_givens = 33
+    proportion_in_box = 0
 
-    if solution != 'UNSAT':
-        decode(solution)
+    for i, sudoku in enumerate(sudokus):
+        # Calculate no of givens
+        gib = round(num_givens*proportion_in_box)
+        gob = num_givens - gib
+
+        reduce(sudoku, gib, gob)
+
+        givens = encode_givens(sudoku)
+        rules = cnf + givens
+
+        os.system('clear')
+        print('{}/{}\nInside: {}\nOutside: {}'.format(i+1, len(sudokus), gib, gob))
+        draw(sudoku)
+
+        solution = pycosat.solve(rules, verbose=1)
+
+        if solution != 'UNSAT':
+            decode(solution)
+        else:
+            print('NOOOOO')
+
+        if i > 1:
+            break
 
 
 def decode(solution):
@@ -42,7 +64,50 @@ def decode(solution):
 
     draw(matrix)
 
+def encode_givens(sudoku):
+    cnf = []
 
+    for column in range(sudoku.shape[0]):
+        for row in range(sudoku.shape[1]):
+            number = sudoku[column, row]
+            if number != 0:
+                cnf.append([int('{0:0>2}{1:0>2}{2}'.format(row+1, column+1, number))])
+
+    return cnf
+
+def reduce(sudoku, inside, outside):
+    n_in = 0
+    n_out = 0
+    keep = []
+
+    while True:
+        # Select square at random
+        i = random.randrange(0, sudoku.size)
+
+        x = i // sudoku.shape[0]
+        y = i % sudoku.shape[1]
+
+        if sudoku[x, y] != 0 and (x, y) not in keep:
+            # Inside
+            if (6 <= x <= 8 or 12 <= x <= 14) and (6 <= y <= 8 or 12 <= y <= 14):
+                if n_in < inside and (x, y):
+                    n_in += 1
+                    keep.append((x, y))
+
+            # Outside
+            else:
+                if n_out < outside:
+                    n_out += 1
+                    keep.append((x, y))
+
+        if n_in == inside and n_out == outside:
+            break
+
+    # Filter
+    for x in range(sudoku.shape[0]):
+        for y in range(sudoku.shape[1]):
+            if (x, y) not in keep:
+                sudoku[x, y] = 0
 
 def draw(matrix):
     output = ''
