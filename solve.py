@@ -5,7 +5,7 @@ import pycosat, math
 def main():
     sudokus = np.load('sudoku.npy')
 
-    with open('temp.cnf', 'r') as f:
+    with open('test.cnf', 'r') as f:
         content = [x.strip() for x in f.readlines()]
 
         cnf = []

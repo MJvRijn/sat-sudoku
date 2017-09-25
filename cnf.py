@@ -66,7 +66,7 @@ def produce(rOff, cOff):
                             exL = "0"
                         print("-",exI,i,exJ,j,k, sep="", end="") 
                         print(" ", end="") 
-                        print("-",exL,l,exI,i,k, sep="") 
+                        print("-",exL,l,exJ,j,k, sep="") 
                         exI = ""
                         exJ = ""
                         exL = ""
