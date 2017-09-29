@@ -1,8 +1,10 @@
 import numpy as np
-import pycosat, math, random, os
+import pycosat, math, random, os, argparse, ast
 
 
 def main():
+    num_givens, proportion_in_box, arrangements = process_arguments()
+
     sudokus = np.load('sudoku.npy')
 
     with open('rules.cnf', 'r') as f:
@@ -13,34 +15,61 @@ def main():
             literals = [int(x) for x in rule.split(' ')]
             cnf.append(literals)
 
+    # Iterate over parameters
+    for givens in num_givens:
+        for proportion in proportion_in_box:
+            inside = round(givens*proportion)
+            outside = givens - inside
 
-    num_givens = 33
-    proportion_in_box = 0
+            # Generate 20 configurations of givens to keep
+            samples = []
+            for i in range(arrangements):
+                samples.append(select_givens(inside, outside))
 
-    for i, sudoku in enumerate(sudokus):
-        # Calculate no of givens
-        gib = round(num_givens*proportion_in_box)
-        gob = num_givens - gib
+            for i, sudoku in enumerate(sudokus):
+                if i > 0:
+                    continue
+                for j, sample in enumerate(samples):
+                    # Prepare data
+                    testdoku = reduce(sudoku, sample)
+                    givens_cnf = encode_givens(testdoku)
+                    rules = cnf + givens_cnf
 
-        reduce(sudoku, gib, gob)
+                    # Solve sudoku
+                    print('{{"givens":{}, "proportion": {}, "inside":{}, "outside":{}, "sudoku":{} "arrangement":{}}}'.format(givens, proportion, inside, outside, i, j))
+                    solution = pycosat.solve(rules, verbose=1)
 
-        givens = encode_givens(sudoku)
-        rules = cnf + givens
+                    if solution == 'UNSAT':
+                        print('Unsatifiable, BUG?')
 
-        os.system('clear')
-        print('{}/{}\nInside: {}\nOutside: {}'.format(i+1, len(sudokus), gib, gob))
-        draw(sudoku)
 
-        solution = pycosat.solve(rules, verbose=1)
+def process_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-g', '--givens', type=str, metavar='[MIN, MAX, N]', help='range of givens to test')
+    parser.add_argument('-a', '--arrangements', type=int, metavar='N', help='number of arrangements per conf')
+    parser.add_argument('-p', '--proportions', type=str, metavar='[MIN, MAX, N]', help='range of proportions to test')
+    args = parser.parse_args()
 
-        if solution != 'UNSAT':
-            decode(solution)
-        else:
-            print('NOOOOO')
+    if args.givens:
+        givens = ast.literal_eval(args.givens)
+    else:
+        givens = [200, 200, 1]
 
-        if i > 1:
-            break
+    givens = np.linspace(givens[0], givens[1], num = givens[2], dtype=np.int)
 
+    if args.proportions:
+        proportions = ast.literal_eval(args.proportions)
+    else:
+        proportions = [0.1, 0.1, 1]
+
+    proportions = np.linspace(proportions[0], proportions[1], num = proportions[2])
+
+    if args.arrangements:
+        arrangements = args.arrangements
+    else:
+        arrangements = 20
+
+    return givens, proportions, arrangements
 
 def decode(solution):
     matrix = np.zeros((21, 21), dtype=np.int)
@@ -61,8 +90,7 @@ def decode(solution):
                 n = int(number[-1])
                 matrix[x,y] = n
 
-
-    draw(matrix)
+    return matrix
 
 def encode_givens(sudoku):
     cnf = []
@@ -75,39 +103,54 @@ def encode_givens(sudoku):
 
     return cnf
 
-def reduce(sudoku, inside, outside):
+def select_givens(inside, outside):
+    DIM = 21
+
     n_in = 0
     n_out = 0
     keep = []
 
     while True:
         # Select square at random
-        i = random.randrange(0, sudoku.size)
+        i = random.randrange(0, DIM*DIM)
 
-        x = i // sudoku.shape[0]
-        y = i % sudoku.shape[1]
+        x = i // DIM
+        y = i % DIM
 
-        if sudoku[x, y] != 0 and (x, y) not in keep:
-            # Inside
-            if (6 <= x <= 8 or 12 <= x <= 14) and (6 <= y <= 8 or 12 <= y <= 14):
-                if n_in < inside and (x, y):
-                    n_in += 1
-                    keep.append((x, y))
+        # Check whether already chosen
+        if (x, y) in keep:
+            continue
 
-            # Outside
-            else:
-                if n_out < outside:
-                    n_out += 1
-                    keep.append((x, y))
+        # Check whether outside puzle (top/bottom)
+        if 9 <= x <= 11 and (0 <= y <= 5 or 15 <= y <= 20):
+            continue
+
+        # Check whether outside puzle (left/right)
+        if 9 <= y <= 11 and (0 <= x <= 5 or 15 <= x <= 20):
+            continue
+
+        # Check whether inside overlap_sudokus
+        if (6 <= x <= 8 or 12 <= x <= 14) and (6 <= y <= 8 or 12 <= y <= 14):
+            if n_in < inside:
+                n_in += 1
+                keep.append((x, y))
+        else:
+            if n_out < outside:
+                n_out += 1
+                keep.append((x, y))
 
         if n_in == inside and n_out == outside:
-            break
+            return keep
 
-    # Filter
+def reduce(sudoku, givens):
+    newdoku = np.zeros((21, 21), dtype=np.int)
+
     for x in range(sudoku.shape[0]):
         for y in range(sudoku.shape[1]):
-            if (x, y) not in keep:
-                sudoku[x, y] = 0
+            if (x, y) in givens:
+                newdoku[x, y] = sudoku[x, y]
+
+    return newdoku
 
 def draw(matrix):
     output = ''
