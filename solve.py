@@ -1,5 +1,5 @@
 import numpy as np
-import pycosat, math, random, os, argparse, ast
+import pycosat, math, random, os, argparse, ast, time
 
 
 def main():
@@ -27,8 +27,8 @@ def main():
                 samples.append(select_givens(inside, outside))
 
             for i, sudoku in enumerate(sudokus):
-                if i > 0:
-                    continue
+                # if i > 1:
+                #     continue
                 for j, sample in enumerate(samples):
                     # Prepare data
                     testdoku = reduce(sudoku, sample)
@@ -36,7 +36,7 @@ def main():
                     rules = cnf + givens_cnf
 
                     # Solve sudoku
-                    print('{{"givens":{}, "proportion": {}, "inside":{}, "outside":{}, "sudoku":{} "arrangement":{}}}'.format(givens, proportion, inside, outside, i, j))
+                    print('{{"givens":{}, "proportion": {}, "inside":{}, "outside":{}, "sudoku":{}, "arrangement":{}}}'.format(givens, proportion, inside, outside, i, j))
                     solution = pycosat.solve(rules, verbose=1)
 
                     if solution == 'UNSAT':
