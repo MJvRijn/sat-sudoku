@@ -4,16 +4,19 @@ from statistics import mean, stdev
 stats = []
 results = []
 
-with open(sys.argv[1]) as f:
-    for line in f.readlines():
-        if line[0:3] == 'c 1':
-            data = [float(x) for x in line.split()[2:]]
-            stats.append(data)
-        elif line[0] == '{':
-            if line.strip()[-1] == 'c':
-                line = line.strip()[:-1]
+for a in sys.argv[1:]:
+    with open(a) as f:
+        for line in f.readlines():
+            if line[0:3] == 'c 1':
+                data = [float(x) for x in line.split()[2:]]
+                stats.append(data)
+            elif line[0] == '{':
+                if line.strip()[-1] == 'c':
+                    line = line.strip()[:-1]
 
-            results.append(ast.literal_eval(line))
+                results.append(ast.literal_eval(line))
+
+# print(len(results), len(stats))
 
 for i in range(len(results)):
     results[i]['time'] = stats[i][0]
@@ -40,13 +43,25 @@ for result in results:
     experiments[(g, p)].append(result)
 
 # Data processing
+terms = ['givens', 'proportion', 'inside', 'outside', 'level', 'variables', 'used', 'original', 'conflicts', 'learned', 'limit', 'agility', 'memory']
+
+print(','.join(terms[:4]), end=',')
+print(','.join(['{},{}'.format(term, term+'-dev') for term in terms[4:]]))
+
 for g, p in experiments:
-    conflicts = []
-    level = []
+    stats = {}
+    output = '{},{:.2f},'.format(g, p)
+    for stat in terms[2:]:
+        accumulator = []
+        for result in experiments[(g, p)]:
+            accumulator.append(result[stat])
 
-    for result in experiments[(g, p)]:
-        conflicts.append(result['conflicts'])
-        level.append(result['level'])
+        m = mean(accumulator)
+        s = stdev(accumulator)
 
+        if stat != 'inside' and stat != 'outside':
+            output += '{:.2f},{:.2f},'.format(m, s)
+        else:
+            output += '{:.2f},'.format(m)
 
-    print('{} givens, {:.3f} inside: {:.2f} ({:.2f}) conflicts, {:.1f} ({:.1f}) level'.format(g, p, mean(conflicts), stdev(conflicts), mean(level), stdev(level)))
+    print(output[:-1])
