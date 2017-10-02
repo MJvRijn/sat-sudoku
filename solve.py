@@ -5,15 +5,29 @@ import pycosat, math, random, os, argparse, ast, time
 def main():
     num_givens, proportion_in_box, arrangements = process_arguments()
 
-    sudokus = np.load('sudoku.npy')
+    sudokus = np.load('sudoku500.npy')
 
     with open('rules.cnf', 'r') as f:
         content = [x.strip() for x in f.readlines()]
 
         cnf = []
+        encoding_table = {}
+        decoding_table = {}
+        i = 1
         for rule in content:
             literals = [int(x) for x in rule.split(' ')]
-            cnf.append(literals)
+
+            # Update encoding tables
+            for literal in literals:
+                if literal not in encoding_table:
+                    encoding_table[literal] = i
+                    encoding_table[-literal] = -i
+                    decoding_table[i] = literal
+                    decoding_table[-i] = -literal
+
+                    i += 1
+
+            cnf.append(encode_cnf(literals, encoding_table))
 
     # Iterate over parameters
     for givens in num_givens:
@@ -27,17 +41,18 @@ def main():
                 samples.append(select_givens(inside, outside))
 
             for i, sudoku in enumerate(sudokus):
-                # if i > 1:
-                #     continue
                 for j, sample in enumerate(samples):
                     # Prepare data
                     testdoku = reduce(sudoku, sample)
-                    givens_cnf = encode_givens(testdoku)
-                    rules = cnf + givens_cnf
+                    rules = cnf + encode_givens(testdoku, encoding_table)
 
                     # Solve sudoku
                     print('{{"givens":{}, "proportion": {}, "inside":{}, "outside":{}, "sudoku":{}, "arrangement":{}}}'.format(givens, proportion, inside, outside, i, j))
                     solution = pycosat.solve(rules, verbose=1)
+
+                    solution = decode_cnf(solution, decoding_table)
+
+                    #draw(decode(solution))
 
                     if solution == 'UNSAT':
                         print('Unsatifiable, BUG?')
@@ -92,16 +107,22 @@ def decode(solution):
 
     return matrix
 
-def encode_givens(sudoku):
+def encode_givens(sudoku, encoding_table):
     cnf = []
 
     for column in range(sudoku.shape[0]):
         for row in range(sudoku.shape[1]):
             number = sudoku[column, row]
             if number != 0:
-                cnf.append([int('{0:0>2}{1:0>2}{2}'.format(row+1, column+1, number))])
+                cnf.append(encode_cnf([int('{0:0>2}{1:0>2}{2}'.format(row+1, column+1, number))], encoding_table))
 
     return cnf
+
+def encode_cnf(cnf, encoding_table):
+    return [encoding_table[l] for l in cnf]
+
+def decode_cnf(cnf, decoding_table):
+    return [decoding_table[l] for l in cnf]
 
 def select_givens(inside, outside):
     DIM = 21
